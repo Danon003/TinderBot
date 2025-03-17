@@ -80,6 +80,41 @@ public class MultiSessionTelegramBot extends TelegramLongPollingBot {
         return null;
     }
 
+    public String sendGenderSelectionMessage() {
+        SendMessage command = createApiSendMessageCommand("Выберите ваш пол:");
+
+        List<String> buttons = List.of("Мужчина", "Женщина");
+        attachButtons(command, buttons);
+        Message sentMessage = executeTelegramApiMethod(command);
+
+        String gender = waitForUserResponse();
+
+        return gender;
+    }
+
+    private String waitForUserResponse() {
+
+        while (true) {
+            String callbackData = getCallbackQueryButtonKey();
+
+            if (!callbackData.isEmpty()) {
+                if ("Мужчина".equals(callbackData)) {
+                    return "Мужчина";
+                } else if ("Женщина".equals(callbackData)) {
+                    return "Женщина";
+                } else {
+                    throw new IllegalArgumentException("Некорректный выбор пола");
+                }
+            }
+            try {
+                Thread.sleep(50000); // Пауза в 500 мс
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new RuntimeException("Ожидание ответа пользователя было прервано", e);
+            }
+        }
+    }
+
     /**
      * Метод возвращает текст из последнего сообщения Telegram-чата
      */
@@ -159,6 +194,8 @@ public class MultiSessionTelegramBot extends TelegramLongPollingBot {
         executeTelegramApiMethod(command);
     }
 
+
+
     /**
      * Сообщение с кнопками (Inline Buttons)
      */
@@ -170,6 +207,8 @@ public class MultiSessionTelegramBot extends TelegramLongPollingBot {
         return executeTelegramApiMethod(command);
     }
 
+
+
     /**
      * Сообщение с кнопками (Inline Buttons)
      */
@@ -180,6 +219,7 @@ public class MultiSessionTelegramBot extends TelegramLongPollingBot {
 
         executeTelegramApiMethod(command);
     }
+
 
     public void showMainMenu(String... commands) {
         ArrayList<BotCommand> list = new ArrayList<BotCommand>();

@@ -1,8 +1,8 @@
 package com.javarush.telegram;
 
 public class UserInfo {
-    public String name; //Имя
-    public String sex; //Пол
+    private String name = null; //Имя
+    private String sex; //Пол
     public String age; //Возраст
     public String city; //Город
     public String occupation; //Профессия
@@ -12,6 +12,18 @@ public class UserInfo {
     public String annoys; //Меня раздражает в людях
     public String goals; //Цели знакомства
 
+    public String getName() {
+        return name;
+    }
+    public void setName(String name) {
+        this.name = name;
+    }
+    public String getSex(){
+        return this.sex.toLowerCase();
+    }
+    public void setSex(String sex){
+        this.sex = sex;
+    }
     private String fieldToString(String str, String description) {
         if (str != null && !str.isEmpty())
             return description + ": " + str + "\n";

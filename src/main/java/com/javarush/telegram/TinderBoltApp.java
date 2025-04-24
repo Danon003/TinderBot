@@ -28,7 +28,7 @@ public class TinderBoltApp extends MultiSessionTelegramBot {
     private UserInfo interlocutor = new UserInfo(); //собеседник
     private int questionCount;
     private int question;
-    private int question1;
+
 
 
 
@@ -72,7 +72,6 @@ public class TinderBoltApp extends MultiSessionTelegramBot {
                     }
 
                     break;
-
             }
 
         }
@@ -101,7 +100,7 @@ public class TinderBoltApp extends MultiSessionTelegramBot {
                         "Регистрация", "/start",
                         "Меню", "/menu",
                         "Сгенерировать Tinder-профиль\uD83D\uDE0E", "/profile",
-                        "Сгененрировать сообщение для знакомства\uD83E\uDD70", "/opener ",
+                        "Сгенерировать сообщение для знакомства\uD83E\uDD70", "/opener ",
                         "Начать переписку от моего имени\uD83D\uDE08", "/message",
                         "Начать переписку со звездами\uD83D\uDD25", "/date",
                         "Начать общение с ChatGPT\uD83E\uDDE0", "/gpt",

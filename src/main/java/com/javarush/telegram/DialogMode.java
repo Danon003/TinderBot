@@ -8,5 +8,4 @@ public enum DialogMode {
     DATE,
     GPT,
     SETTING,
-    NONE
 }

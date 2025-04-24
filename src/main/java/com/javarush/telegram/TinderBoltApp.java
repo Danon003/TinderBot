@@ -10,17 +10,30 @@ import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import org.telegram.telegrambots.updatesreceivers.DefaultBotSession;
 
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
 
 public class TinderBoltApp extends MultiSessionTelegramBot {
     public static final String TELEGRAM_BOT_NAME = "myFirstBotTinder_bot";
     public static final String TELEGRAM_BOT_TOKEN = "7766262772:AAG7aieH7MYhCaqUU8IOOQWqBu-3KsOhoe4";
     public static final String OPEN_AI_TOKEN = "gpt:GMEpATyDssZWFB4H2wdsJFkblB3TtbsOsfleLvmgKt8qL2qt";
     private static int model;
+    private Map<DialogMode, BotStrategy> strategies;
+
 
     public TinderBoltApp() {
         super(TELEGRAM_BOT_NAME, TELEGRAM_BOT_TOKEN);
 
+        // Инициализация стратегий
+        strategies = new HashMap<>();
+        strategies.put(DialogMode.PROFILE, new ProfileStrategy());
+        strategies.put(DialogMode.OPENER, new OpenerStrategy());
+        strategies.put(DialogMode.MESSAGE, new MessageStrategy());
+        strategies.put(DialogMode.DATE, new DateStrategy());
+        strategies.put(DialogMode.GPT, new GPTStrategy());
+        strategies.put(DialogMode.SETTING, new SettingStrategy());
     }
+
     private ChatGPTService chatgpt = new ChatGPTService(OPEN_AI_TOKEN);
     private DialogMode currentMode = null;
     private ArrayList<String> list = new ArrayList<>();
@@ -31,131 +44,36 @@ public class TinderBoltApp extends MultiSessionTelegramBot {
 
 
 
-
     @Override
-    public void onUpdateEventReceived(Update update) {
+    public void onUpdateEventReceived(Update update) throws TelegramApiException {
         String message = getMessageText();
 
-
-        if(message.equals("/start")){
-            currentMode = DialogMode.PROFILE;
-            question = 1;
-            sendTextMessage("Введите Имя");
-            return;
-        }
-        if(currentMode == DialogMode.PROFILE && !isMessageCommand()){
-            switch (question){
-                case 1:
-                    me.setName(message);
-                    question = 2;
-                    sendTextButtonsMessage("Выберите ваш пол:", "Мужчина", "male", "Женщина", "female");
-                    break;
-                case 2:
-                    String callbackData = getCallbackQueryButtonKey();
-                    if (!callbackData.isEmpty()) {
-                        if ("male".equals(callbackData)) {
-                            me.setSex("Мужчина");
-                            interlocutor.setSex("Женщина");
-                            model = 0; //модель поведения, если собеседник женщина
-                        } else if ("female".equals(callbackData)) {
-                            me.setSex("Женщина");
-                            interlocutor.setSex("Мужчина");
-                            model = 1;
-                        } else {
-                            sendTextMessage("Некорректный выбор пола. Попробуйте снова.");
-                            return;
-                        }
-
-                        sendTextMessage("Вы выбрали: " + me.getSex());
-                        message = "/menu";
-
-                    }
-
-                    break;
-            }
-
-        }
-
-        if(message.equals("/setting")){
+        if(message.equals("/setting")) {
             currentMode = DialogMode.SETTING;
-            sendTextButtonsMessage("Ваши данные: \nИмя - " + me.getName() + ",\n пол - " + me.getSex() + " \nИзменить?",
-                    "да", "да",
-                    "нет", "нет");
-
-            return;
-        }
-        if(!isMessageCommand() && currentMode == DialogMode.SETTING) {
-            if (getCallbackQueryButtonKey().equals("да")) {
-                currentMode = DialogMode.PROFILE;
-                question = 1;
+            if (getCurrentUser().getName() == null || getCurrentUser().getSex() == null) {
+                sendTextMessage("Похоже, вы еще не зарегистрированы. Давайте начнем!");
+                SettingStrategy.setSettingCount(1);
                 sendTextMessage("Введите Имя");
-                return;
             }
-            else if(getCallbackQueryButtonKey().equals("нет")){
-                currentMode = DialogMode.MAIN;
-                String text;
-                text = loadMessage("main");
-                sendTextMessage(text);
-                showMainMenu(
-                        "Регистрация", "/start",
-                        "Меню", "/menu",
-                        "Сгенерировать Tinder-профиль\uD83D\uDE0E", "/profile",
-                        "Сгенерировать сообщение для знакомства\uD83E\uDD70", "/opener ",
-                        "Начать переписку от моего имени\uD83D\uDE08", "/message",
-                        "Начать переписку со звездами\uD83D\uDD25", "/date",
-                        "Начать общение с ChatGPT\uD83E\uDDE0", "/gpt",
-                        "Изменить мои данные", "/setting");
-                return;
+            else{
+                SettingStrategy.setSettingCount(3);
+                sendTextButtonsMessage(
+                        "Ваши данные:\n" +
+                                "Имя - " + getCurrentUser().getName() + "\n" +
+                                "Пол - " + getCurrentUser().getSex() + "\n" +
+                                "Изменить?",
+                        "Да", "y",
+                        "Нет", "n"
+                );
             }
             return;
         }
 
-        if(message.equals("/menu")) {
-            currentMode = DialogMode.MAIN;
-            sendPhotoMessage("main");
-            String text;
-            text = loadMessage("main");
-            sendTextMessage(text);
-            showMainMenu(
-                    "Регистрация", "/start",
-                        "Меню", "/menu",
-                        "Сгенерировать Tinder-профиль\uD83D\uDE0E", "/profile",
-                        "Сгененрировать сообщение для знакомства\uD83E\uDD70", "/opener ",
-                        "Начать переписку от моего имени\uD83D\uDE08", "/message",
-                        "Начать переписку со звездами\uD83D\uDD25", "/date",
-                        "Начать общение с ChatGPT\uD83E\uDDE0", "/gpt",
-                        "Изменить мои данные", "/setting");
-            return;
-        }
-
-
-        if(message.equals("/gpt")){
-            currentMode = DialogMode.GPT;
-            sendPhotoMessage("gpt");
-            String text = loadMessage("gpt");
-            sendTextMessage(text);
-            return;
-        }
-        if(currentMode == DialogMode.GPT && !isMessageCommand()){
-            String prompt = loadPrompt("gpt");
-            Message msg = sendTextMessage("Подождите пару секунд - ChatGPT думает...");
-            String answer = chatgpt.sendMessage(prompt, message);
-            updateTextMessage(msg, answer);
-
-            return;
-        }
-
-        /**
-         * Здесь работает функция DATE, которая позволяет тренироваться приглашать на свидание собеседника по переписке.
-         * Здесь учитывается выбранный при регистрации @sex (пол) и в качестве собеседника
-         * выбирается человек противоположного пола
-         * */
-
-        if(message.equals("/date")){
+        if (message.equals("/date")) {
             currentMode = DialogMode.DATE;
             sendPhotoMessage("date");
             String text;
-            switch(model){
+            switch (getModel()) {
                 case 0:
                     text = loadMessage("dateForMan");
                     sendTextButtonsMessage(text,
@@ -171,161 +89,110 @@ public class TinderBoltApp extends MultiSessionTelegramBot {
                     break;
             }
             return;
-
         }
 
-        if(currentMode == DialogMode.DATE && !message.equals("/message")&& !isMessageCommand()){
-            String query = getCallbackQueryButtonKey();
-            if(query.startsWith("date_")){
-                sendPhotoMessage(query);
-                sendTextMessage(" Отличный выбор!\nТвоя задача пригласить собеседника на свидание за 5 сообщений.");
-
-                String prompt = loadPrompt(query);
-                chatgpt.setPrompt(prompt);
-                return;
-            }
-            Message msg = sendTextMessage("Подождите, собеседник набирает текст...");
-            String answer = chatgpt.addMessage( message);
-            updateTextMessage(msg, answer);
+        if (message.equals("/profile")) {
+            currentMode = DialogMode.PROFILE;
+            questionCount = 1;
+            sendPhotoMessage("profile");
+            sendTextMessage(loadMessage("profile"));
+            sendTextMessage("Введите Имя");
             return;
         }
 
-        //command Message
-        if(message.equals("/message")){
+
+        if (message.equals("/message")) {
             currentMode = DialogMode.MESSAGE;
             sendPhotoMessage("message");
-            String text = loadMessage("message");
-            sendTextButtonsMessage(text,
-            "Следующее сообщение" , "message_next",
-            "Пригласить на свидание", "message_date");
-
+            sendTextMessage(loadMessage("message"));
+            sendTextButtonsMessage(
+                    "Выберите действие:",
+                    "Следующее сообщение", "message_next",
+                    "Пригласить на свидание", "message_date"
+            );
             return;
         }
 
-        if(currentMode == DialogMode.MESSAGE && !isMessageCommand()){
-            String query = getCallbackQueryButtonKey();
-            if (query.startsWith("message_")) {
-                String prompt = loadPrompt(query );
-                String userChatHistory = String.join("\n\n", list);
-
-                Message msg = sendTextMessage("Подождите пару секунд - ChatGPT думает...");
-                String answer = chatgpt.sendMessage(prompt + me.getSex(), userChatHistory);
-                updateTextMessage(msg, answer);
-                return;
-            }
-            list.add(message);
-            return;
-        }
-
-        //command PROFILE
-        if(message.equals("/profile")){
-
-            sendPhotoMessage("profile");
-            String text = loadMessage("profile");
-            sendTextMessage(text);
-
-            questionCount = 1;
-            sendTextMessage("Сколько вам лет?");
-            return;
-        }
-        if(currentMode == DialogMode.PROFILE && !isMessageCommand()){
-            switch(questionCount){
-                case 1:
-                me.age = message;
-                questionCount = 2;
-                sendTextMessage("Кем вы работаете?");
-                break;
-
-                case 2:
-                me.occupation = message;
-                questionCount = 3;
-                sendTextMessage("какое у вас хобби?");
-                break;
-
-                case 3:
-                me.hobby = message;
-                questionCount = 4;
-                sendTextMessage("Что вас раздражает в людях?");
-                break;
-
-                case 4:
-                    me.annoys = message;
-                    questionCount = 5;
-                    sendTextMessage("Цель знакомства?");
-                    break;
-                case 5:
-                    me.goals = message;
-                    String aboutMyself = me.toString();
-
-                    Message msg = sendTextMessage("Подождите пару секунд, ChatGPT \uD83E\uDDE0 думает...");
-                    String answer = chatgpt.sendMessage(loadPrompt("profile") + me.getSex(), aboutMyself);
-                    updateTextMessage(msg, answer);
-                    break;
-            }
-        }
-
-        //command OPENER
-        if(message.equals("/opener")){
+        if (message.equals("/opener")) {
             currentMode = DialogMode.OPENER;
+            questionCount = 1;
             sendPhotoMessage("opener");
             sendTextMessage(loadMessage("opener"));
-            questionCount = 1;
             sendTextMessage("Имя собеседника");
             return;
         }
 
-        if(currentMode == DialogMode.OPENER && !isMessageCommand()){
-            String pr = "";
-            switch(model){
-                case 0:
-                    pr = loadPrompt("openerForMan");
-                    break;
-                case 1:
-                    pr = loadPrompt("openerForWoman");
-                    break;
-            }
+        if (message.equals("/gpt")) {
+            currentMode = DialogMode.GPT;
+            sendPhotoMessage("gpt");
+            sendTextMessage(loadMessage("gpt"));
+            return;
+        }
+        if (message.equals("/menu")) {
+            currentMode = DialogMode.MAIN;
+            sendPhotoMessage("main");
+            String text = loadMessage("main");
+            sendTextMessage(text);
+            showMainMenu();
+            return;
+        }
 
-            switch (questionCount){
-                case 1:
-                    interlocutor.setName(message);
-                    questionCount = 2;
-                    sendTextMessage("Сколько ему лет?");
-                    break;
-                case 2:
-                    interlocutor.age = message;
-                    questionCount = 3;
-                    sendTextMessage("Какое у него хобби?");
-                    break;
-                case 3:
-                    interlocutor.hobby = message;
-                    questionCount = 4;
-                    sendTextMessage("Кем он работает?");
-                    break;
-                case 4:
-                    interlocutor.occupation = message;
-                    questionCount = 5;
-                    sendTextMessage("Цель знакомства?");
-                    break;
-                case 5:
-                    interlocutor.goals = message;
-                    String aboutFriend = interlocutor.toString();
-
-
-                    Message msg = sendTextMessage("Подождите пару секунд, ChatGPT \uD83E\uDDE0 думает...");
-
-                    String answer = chatgpt.sendMessage(pr, aboutFriend);
-
-                    updateTextMessage(msg, answer);
-                    break;
-            }
-
+        if (currentMode != null && strategies.containsKey(currentMode)) {
+            strategies.get(currentMode).execute(update, this);
+        } else if (!isMessageCommand()) {
+            sendTextMessage("Неизвестная команда.");
         }
     }
+
+    public ChatGPTService getChatGPT() {
+        return chatgpt;
+    }
+
+    public UserInfo getCurrentUser() {
+        return me;
+    }
+
+    public UserInfo getInterlocutor() {
+        return interlocutor;
+    }
+
+    public int getQuestionCount() {
+        return questionCount;
+    }
+
+    public void setQuestionCount(int count) {
+        this.questionCount = count;
+    }
+
+    public void setCurrentMode(DialogMode mode) {
+        this.currentMode = mode;
+    }
+
+    public ArrayList<String> getList() {
+        return list;
+    }
+
+    public int getModel() {
+        return model;
+    }
+    public void setModel(int model) {
+        TinderBoltApp.model = model;
+    }
+    public void showMainMenu(){
+        showMainMenu(
+                "Меню", "/menu",
+                "Сгенерировать Tinder-профиль\uD83D\uDE0E", "/profile",
+                "Сгенерировать сообщение для знакомства\uD83E\uDD70", "/opener",
+                "Начать переписку от моего имени\uD83D\uDE08", "/message",
+                "Начать переписку со звездами\uD83D\uDD25", "/date",
+                "Начать общение с ChatGPT\uD83E\uDDE0", "/gpt",
+                "Изменить мои данные\uD83D\uDD27", "/setting"
+        );
+    }
+
 
     public static void main(String[] args) throws TelegramApiException {
         TelegramBotsApi telegramBotsApi = new TelegramBotsApi(DefaultBotSession.class);
         telegramBotsApi.registerBot(new TinderBoltApp());
-
     }
 }
-

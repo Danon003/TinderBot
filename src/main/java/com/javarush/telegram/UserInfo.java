@@ -3,14 +3,14 @@ package com.javarush.telegram;
 public class UserInfo {
     private String name = null; //Имя
     private String sex; //Пол
-    public String age; //Возраст
-    public String city; //Город
-    public String occupation; //Профессия
-    public String hobby; //Хобби
+    private String age; //Возраст
+    private String city; //Город
+    private String occupation; //Профессия
+    private String hobby; //Хобби
     public String handsome; //Красота, привлекательность
     public String wealth; //Доход, богатство
-    public String annoys; //Меня раздражает в людях
-    public String goals; //Цели знакомства
+    private String annoys; //Меня раздражает в людях
+    private String goals; //Цели знакомства
 
     public String getName() {
         return name;
@@ -37,15 +37,63 @@ public class UserInfo {
 
         result += fieldToString(name, "Имя");
         result += fieldToString(sex, "Пол");
-        result += fieldToString(age, "Возраст");
-        result += fieldToString(city, "Город");
-        result += fieldToString(occupation, "Профессия");
-        result += fieldToString(hobby, "Хобби");
+        result += fieldToString(getAge(), "Возраст");
+        result += fieldToString(getCity(), "Город");
+        result += fieldToString(getOccupation(), "Профессия");
+        result += fieldToString(getHobby(), "Хобби");
         result += fieldToString(handsome, "Красота, привлекательность в баллах (максимум 10 баллов)");
         result += fieldToString(wealth, "Доход, богатство");
-        result += fieldToString(annoys, "В людях раздражает");
-        result += fieldToString(goals, "Цели знакомства");
+        result += fieldToString(getAnnoys(), "В людях раздражает");
+        result += fieldToString(getGoals(), "Цели знакомства");
 
         return result;
+    }
+
+    public String getAge() {
+        return age;
+    }
+
+    public void setAge(String age) {
+        this.age = age;
+    }
+
+    public String getCity() {
+        return city;
+    }
+
+    public void setCity(String city) {
+        this.city = city;
+    }
+
+    public String getOccupation() {
+        return occupation;
+    }
+
+    public void setOccupation(String occupation) {
+        this.occupation = occupation;
+    }
+
+    public String getHobby() {
+        return hobby;
+    }
+
+    public void setHobby(String hobby) {
+        this.hobby = hobby;
+    }
+
+    public String getAnnoys() {
+        return annoys;
+    }
+
+    public void setAnnoys(String annoys) {
+        this.annoys = annoys;
+    }
+
+    public String getGoals() {
+        return goals;
+    }
+
+    public void setGoals(String goals) {
+        this.goals = goals;
     }
 }
